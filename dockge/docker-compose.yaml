@@ -1,0 +1,61 @@
+name: dockge
+services:
+  app:
+    cpu_shares: 90
+    command: []
+    container_name: dockge
+    deploy:
+      resources:
+        limits:
+          memory: 23981M
+    environment:
+      - DOCKGE_STACKS_DIR=/DATA/AppData/dockge/stacks
+    hostname: dockge
+    image: louislam/dockge:1.4.2
+    labels:
+      icon: https://github.com/walkxcode/dashboard-icons/blob/main/png/dockge.png?raw=true
+    ports:
+      - mode: ingress
+        target: 5001
+        published: "7007"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /DATA/AppData/dockge/data
+        target: /app/data
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /DATA/AppData/dockge/stacks
+        target: /DATA/AppData/dockge/stacks
+        bind:
+          create_host_path: true
+    x-casaos:
+      ports:
+        - container: "5001"
+          description:
+            en_us: "Container Port: 5001"
+      volumes:
+        - container: /var/run/docker.sock
+          description:
+            en_us: "Container Path: /var/run/docker.sock"
+        - container: /app/data
+          description:
+            en_us: "Container Path: /app/data"
+        - container: /DATA/AppData/dockge/stacks
+          description:
+            en_us: "Container Path: /DATA/AppData/dockge/stacks"
+    devices: []
+    cap_add: []
+    networks:
+      - default
+    privileged: false
+networks:
+  default:
+    name: dockge_default
