@@ -1,0 +1,126 @@
+name: crowdsec_npm
+services:
+  app:
+    depends_on:
+      db:
+        condition: service_healthy
+        required: true
+    environment:
+      CROWDSEC_OPENRESTY_BOUNCER: |
+        ENABLED=true
+        API_URL=http://crowdsec:8080
+        API_KEY= ""api key""
+      DB_MYSQL_HOST: db
+      DB_MYSQL_NAME: npm
+      DB_MYSQL_PASSWORD: ""pass""
+      DB_MYSQL_PORT: "3306"
+      DB_MYSQL_USER: npm
+    image: lepresidente/nginxproxymanager:latest
+    networks:
+      crowdsec: null
+      npm: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "80"
+        protocol: tcp
+      - mode: ingress
+        target: 443
+        published: "443"
+        protocol: tcp
+      - mode: ingress
+        target: 81
+        published: "81"
+        protocol: tcp
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges=true
+    volumes:
+      - type: bind
+        source: /DATA/AppData/dockge/stacks/crowdsec_npm/data
+        target: /data
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /DATA/AppData/dockge/stacks/crowdsec_npm/letsencrypt
+        target: /etc/letsencrypt
+        bind:
+          create_host_path: true
+  crowdsec:
+    container_name: crowdsec
+    environment:
+      COLLECTIONS: crowdsecurity/nginx-proxy-manager
+    image: docker.io/crowdsecurity/crowdsec:latest
+    networks:
+      crowdsec: null
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges=true
+    volumes:
+      - type: volume
+        source: crowdsec-db
+        target: /var/lib/crowdsec/data
+        volume: {}
+      - type: volume
+        source: crowdsec-config
+        target: /etc/crowdsec
+        volume: {}
+      - type: bind
+        source: /DATA/AppData/crowdsec/acquis.yaml
+        target: /etc/crowdsec/acquis.yaml
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /DATA/AppData/dockge/stacks/crowdsec_npm/data/logs
+        target: /var/log/npm
+        read_only: true
+        bind:
+          create_host_path: true
+  db:
+    environment:
+      MYSQL_DATABASE: npm
+      MYSQL_PASSWORD: "" pass""
+      MYSQL_ROOT_PASSWORD: ""root pass""
+      MYSQL_USER: npm
+    healthcheck:
+      test:
+        - CMD
+        - /usr/local/bin/healthcheck.sh
+        - --innodb_initialized
+      timeout: 5s
+      interval: 5s
+      retries: 5
+      start_period: 5s
+    image: mariadb:lts
+    networks:
+      npm: null
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges=true
+    volumes:
+      - type: volume
+        source: mariadb-data
+        target: /var/lib/mysql
+        volume: {}
+networks:
+  crowdsec:
+    name: crowdsec_npm_crowdsec
+    driver: bridge
+  default:
+    name: crowdsec_npm_default
+  npm:
+    name: crowdsec_npm_npm
+    driver: bridge
+volumes:
+  crowdsec-config:
+    name: crowdsec_npm_crowdsec-config
+  crowdsec-db:
+    name: crowdsec_npm_crowdsec-db
+  mariadb-data:
+    name: crowdsec_npm_mariadb-data
+x-casaos:
+  is_uncontrolled: false
+  tips:
+    custom: "cf api: ---api key---"
+  title:
+    en_us: crowdsec_npm
